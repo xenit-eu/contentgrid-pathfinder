@@ -1,0 +1,26 @@
+name: build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 17
+      - name: Build and Test
+        run: ./gradlew build
+      - name: Docker image
+        if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
+        run: ./gradlew bootBuildImage --publishImage
+        env:
+          ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_URL: open-source.docker.xenit.eu
+          ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_USERNAME: ${{ secrets.CLOUDSMITH_USER }}
+          ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_PASSWORD: ${{ secrets.CLOUDSMITH_APIKEY }}
