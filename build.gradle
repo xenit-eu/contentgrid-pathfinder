@@ -29,7 +29,7 @@ dependencies {
 }
 
 bootBuildImage {
-	def repo = "docker.xenit.eu/open-source/contentgrid/pathfinder"
+	def repo = "open-source.docker.xenit.eu/contentgrid/pathfinder"
 	imageName = "${repo}:${project.version}"
 	tags = "${project.version}".endsWith('SNAPSHOT') ? [ "${repo}:SNAPSHOT" ] : null
 
