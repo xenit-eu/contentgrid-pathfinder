@@ -26,6 +26,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation platform('org.testcontainers:testcontainers-bom:1.17.6')
+	testImplementation "org.testcontainers:testcontainers"
+	testImplementation "org.testcontainers:junit-jupiter"
+	testImplementation "org.testcontainers:k3s"
+	testImplementation 'org.awaitility:awaitility'
+	testImplementation 'org.assertj:assertj-core'
 }
 
 bootBuildImage {

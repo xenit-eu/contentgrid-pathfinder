@@ -11,6 +11,18 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
+    components {
+        withModule("io.fabric8:kubernetes-client") {
+            allVariants {
+                withDependencies {
+                    add('org.bouncycastle:bcpkix-jdk15on:1.70') {
+                        because 'Client depends on BouncyCastle for EC keys. See https://github.com/fabric8io/kubernetes-client/blob/master/doc/FAQ.md#what-is-bouncy-castle-optional-dependency-and-when-is-it-required'
+                    }
+                }
+            }
+
+        }
+    }
 }
 
 rootProject.name = 'contentgrid-pathfinder'

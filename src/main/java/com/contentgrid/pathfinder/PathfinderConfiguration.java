@@ -7,9 +7,12 @@ import com.contentgrid.pathfinder.config.PathfinderProperties;
 import com.contentgrid.pathfinder.kcontroller.ConfigMapWatcher;
 import com.contentgrid.pathfinder.kcontroller.IngressGenerator;
 import com.contentgrid.pathfinder.kcontroller.IngressManager;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.micrometer.observation.ObservationRegistry;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -20,7 +23,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.Disposable;
-import reactor.core.observability.micrometer.Micrometer;
 import reactor.core.scheduler.Schedulers;
 
 @Configuration
@@ -29,8 +31,14 @@ import reactor.core.scheduler.Schedulers;
 public class PathfinderConfiguration {
 
     @Bean
-    KubernetesClient kubernetesClient() {
+    KubernetesClient kubernetesClient(PathfinderProperties properties) {
+        var config = Optional.ofNullable(properties.getKubernetes())
+                .orElseGet(() -> {
+                    log.warn("Using autoconfiguration for kubernetes client");
+                    return Config.autoConfigure(null);
+                });
         return new KubernetesClientBuilder()
+                .withConfig(config)
                 .build();
     }
     

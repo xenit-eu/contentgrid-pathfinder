@@ -56,7 +56,8 @@ public class IngressManager {
                         }
                     });
         } catch(Exception exception) {
-            log.error("Error during hanle of event '{}/{}'",
+            log.error("Error during handle of event {} '{}/{}'",
+                    event.action().name(),
                     event.configMap().getMetadata().getNamespace(),
                     event.configMap().getMetadata().getName(),
                     exception
@@ -99,7 +100,7 @@ public class IngressManager {
                         log.info("Created ingress '{}/{}'", ingress.getMetadata().getNamespace(), ingress.getMetadata().getName());
                     }
                 }, () -> {
-                    log.info("No domains in configmap '{}/{}', cleaning up", configMap.getMetadata().getNamespace(), configMap.getMetadata().getName());
+                    log.info("No ingress for configmap '{}/{}', cleaning up", configMap.getMetadata().getNamespace(), configMap.getMetadata().getName());
                     this.delete(configMap);
                 });
     }

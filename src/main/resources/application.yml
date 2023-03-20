@@ -12,14 +12,3 @@ pathfinder:
       '[app.contentgrid.com/service-type]': gateway
   target:
     namespace: contentgrid-system
-    annotations:
-      '[cert-manager.io/cluster-issuer]': letsencrypt-production
-    services:
-      - path: /
-        pathType: Prefix
-        serviceName: gateway-service
-        servicePort: 8080
-      - path: /.well-known/jwks.json
-        pathType: Exact
-        serviceName: slingshot-service
-        servicePort: 8080

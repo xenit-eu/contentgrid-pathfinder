@@ -14,8 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 public class IngressGenerator {
     private final PathfinderTargetProperties targetProperties;
     public static final String DOMAINS_FIELD_NAME = "contentgrid.routing.domains";
@@ -24,6 +26,11 @@ public class IngressGenerator {
     public Optional<Ingress> createIngress(ConfigMap configMap) {
         var domainNameString = configMap.getData().get(DOMAINS_FIELD_NAME);
         if(domainNameString == null) {
+            log.warn("ConfigMap '{}' does not have any domainnames configured", configMap.getMetadata().getName());
+            return Optional.empty();
+        }
+        if(targetProperties.getServices().isEmpty()) {
+            log.warn("No services configured for target, can not generate an ingress");
             return Optional.empty();
         }
         var domainNames = List.of(domainNameString.split(","));
