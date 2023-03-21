@@ -10,7 +10,6 @@ import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRule;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressTLSBuilder;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +26,7 @@ public class IngressGenerator {
     public Optional<Ingress> createIngress(ConfigMap configMap) {
         var domainNameString = configMap.getData().get(DOMAINS_FIELD_NAME);
         if(domainNameString == null) {
-            log.warn("ConfigMap '{}' does not have any domainnames configured", configMap.getMetadata().getName());
+            log.warn("ConfigMap '{}' does not have any hostnames configured", configMap.getMetadata().getName());
             return Optional.empty();
         }
         if(targetProperties.getServices().isEmpty()) {
@@ -44,10 +43,10 @@ public class IngressGenerator {
 
         // Max size of TLS certificate CN field is 64 characters, add a fallback domain name that can be used as CN.
         if(ingressTlsBuilder.getHosts().stream().noneMatch(domainName -> domainName.length() < 64)) {
-            if(targetProperties.getTls().getFallbackCnDomainName() != null) {
-                ingressTlsBuilder.addToHosts(targetProperties.getTls().getFallbackCnDomainName());
+            if(targetProperties.getTls().getFallbackCnHostname() != null) {
+                ingressTlsBuilder.addToHosts(targetProperties.getTls().getFallbackCnHostname());
             } else {
-                log.warn("Ingress for ConfigMap '{}': all domainnames are longer than 64 characters. Set 'pathfinder.target.tls.fallback-cn-domain-name' to be able to generate a TLS certificate.", configMap.getMetadata().getName());
+                log.warn("Ingress for ConfigMap '{}': all hostnames are longer than 64 characters. Set 'pathfinder.target.tls.fallback-cn-hostname' to be able to generate a TLS certificate.", configMap.getMetadata().getName());
             }
         }
 

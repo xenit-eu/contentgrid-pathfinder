@@ -42,6 +42,6 @@ public class PathfinderProperties {
 
     @Data
     public static class PathfinderTlsProperties {
-        private String fallbackCnDomainName;
+        private String fallbackCnHostname;
     }
 }
