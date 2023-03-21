@@ -38,6 +38,7 @@ public class IngressGenerator {
         var ingressBuilder = new IngressBuilder();
         var ingressTls = new IngressTLSBuilder()
                 .withHosts(domainNames)
+                .withSecretName("ingress-tls-"+configMap.getMetadata().getName())
                 .build();
 
         // @formatter:off
