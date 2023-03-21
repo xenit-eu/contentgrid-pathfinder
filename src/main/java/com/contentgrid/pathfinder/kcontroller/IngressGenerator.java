@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.networking.v1.IngressBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRule;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressRuleBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.IngressTLSBuilder;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,11 +36,20 @@ public class IngressGenerator {
         }
         var domainNames = List.of(domainNameString.split(","));
 
+
         var ingressBuilder = new IngressBuilder();
-        var ingressTls = new IngressTLSBuilder()
-                .withHosts(domainNames)
-                .withSecretName("ingress-tls-"+configMap.getMetadata().getName())
-                .build();
+        var ingressTlsBuilder = new IngressTLSBuilder()
+                .addAllToHosts(domainNames)
+                .withSecretName("ingress-tls-"+configMap.getMetadata().getName());
+
+        // Max size of TLS certificate CN field is 64 characters, add a fallback domain name that can be used as CN.
+        if(ingressTlsBuilder.getHosts().stream().noneMatch(domainName -> domainName.length() < 64)) {
+            if(targetProperties.getTls().getFallbackCnDomainName() != null) {
+                ingressTlsBuilder.addToHosts(targetProperties.getTls().getFallbackCnDomainName());
+            } else {
+                log.warn("Ingress for ConfigMap '{}': all domainnames are longer than 64 characters. Set 'pathfinder.target.tls.fallback-cn-domain-name' to be able to generate a TLS certificate.", configMap.getMetadata().getName());
+            }
+        }
 
         // @formatter:off
         return Optional.of(ingressBuilder.editOrNewMetadata()
@@ -51,7 +61,7 @@ public class IngressGenerator {
                 .endMetadata()
                 .withNewSpec()
                     .withRules(domainNames.stream().map(this::createIngressRule).toList())
-                    .withTls(ingressTls)
+                    .withTls(ingressTlsBuilder.build())
                 .endSpec()
                 .build());
         // @formatter:on

@@ -28,6 +28,7 @@ public class PathfinderProperties {
         private String namespace;
         private Map<String, String> annotations = new HashMap<>();
         private List<ServiceMappingProperties> services = new ArrayList<>();
+        private PathfinderTlsProperties tls = new PathfinderTlsProperties();
     }
 
     @Data
@@ -37,5 +38,10 @@ public class PathfinderProperties {
         private String serviceName;
         private int servicePort;
         private String servicePortName;
+    }
+
+    @Data
+    public static class PathfinderTlsProperties {
+        private String fallbackCnDomainName;
     }
 }
