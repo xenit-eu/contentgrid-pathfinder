@@ -1,9 +1,12 @@
 package com.contentgrid.pathfinder.kcontroller;
 
 import com.contentgrid.pathfinder.config.PathfinderProperties.PathfinderTargetProperties;
+import com.contentgrid.pathfinder.kcontroller.events.CreatedEvent;
+import com.contentgrid.pathfinder.kcontroller.events.DeletedEvent;
+import com.contentgrid.pathfinder.kcontroller.events.Event;
+import com.contentgrid.pathfinder.kcontroller.events.ModifiedEvent;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.Objects;
@@ -24,45 +27,36 @@ public class IngressManager {
     public void handleEvent(Event event) {
         try {
             Observation.createNotStarted("pathfinder.kcontroller.handle", observationRegistry)
-                    .lowCardinalityKeyValue("event", event.action().name())
-                    .highCardinalityKeyValue("configmap-namespace", event.configMap().getMetadata().getNamespace())
-                    .highCardinalityKeyValue("configmap-name", event.configMap().getMetadata().getName())
+                    .lowCardinalityKeyValue("event", event.getClass().getSimpleName())
+                    .highCardinalityKeyValue("configmap-name", event.getName())
                     .observe(() -> {
-                        switch (event.action()) {
-                            case ADDED -> {
-                                createOrUpdate(event.configMap());
+                        if(event instanceof CreatedEvent createdEvent) {
+                            createOrUpdate(createdEvent.configMap());
+                        } else if(event instanceof ModifiedEvent modifiedEvent) {
+                            if(isRelevantChange(modifiedEvent.oldConfigMap(), modifiedEvent.newConfigMap())) {
+                                createOrUpdate(modifiedEvent.newConfigMap());
+                            } else {
+                                log.debug("Dropped irrelevant change from '{}' to '{}'", modifiedEvent.oldConfigMap(), modifiedEvent.newConfigMap());
                             }
-                            case MODIFIED -> {
-                                if (event.configMap().isMarkedForDeletion()) {
-                                    delete(event.configMap());
-                                } else {
-                                    createOrUpdate(event.configMap());
-                                }
-                            }
-                            case DELETED -> {
-                                try {
-                                    delete(event.configMap());
-                                } catch (KubernetesClientException kubernetesClientException) {
-                                    if(Objects.equals(kubernetesClientException.getFullResourceName(), "configmaps")) {
-                                        log.warn("Error during handling delete of '{}/{}'",
-                                                event.configMap().getMetadata().getNamespace(),
-                                                event.configMap().getMetadata().getName(),
-                                                kubernetesClientException);
-                                    } else {
-                                        throw kubernetesClientException;
-                                    }
-                                }
-                            }
+                        } else if(event instanceof DeletedEvent deletedEvent) {
+                            delete(deletedEvent.configMap());
+                        } else {
+                            throw new RuntimeException("Unknown event kind '%s'".formatted(event.getClass().getSimpleName()));
                         }
                     });
         } catch(Exception exception) {
-            log.error("Error during handle of event {} '{}/{}'",
-                    event.action().name(),
-                    event.configMap().getMetadata().getNamespace(),
-                    event.configMap().getMetadata().getName(),
+            log.error("Error during handle of event {} '{}'",
+                    event.getClass().getSimpleName(),
+                    event.getName(),
                     exception
             );
         }
+    }
+
+    private boolean isRelevantChange(ConfigMap oldConfigMap, ConfigMap newConfigMap) {
+        var oldIngress = generator.createIngress(oldConfigMap);
+        var newIngress = generator.createIngress(newConfigMap);
+        return !Objects.equals(oldIngress, newIngress);
     }
 
     private void createOrUpdate(ConfigMap configMap) {

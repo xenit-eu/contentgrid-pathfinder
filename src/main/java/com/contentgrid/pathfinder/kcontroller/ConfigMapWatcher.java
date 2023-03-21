@@ -1,14 +1,16 @@
 package com.contentgrid.pathfinder.kcontroller;
 
 import com.contentgrid.pathfinder.config.PathfinderProperties.PathfinderSourceProperties;
+import com.contentgrid.pathfinder.kcontroller.events.CreatedEvent;
+import com.contentgrid.pathfinder.kcontroller.events.DeletedEvent;
+import com.contentgrid.pathfinder.kcontroller.events.Event;
+import com.contentgrid.pathfinder.kcontroller.events.ModifiedEvent;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.Watcher;
-import io.fabric8.kubernetes.client.WatcherException;
+import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -18,31 +20,38 @@ public class ConfigMapWatcher {
 
     public Flux<Event> watch() {
         return Flux.create(emitter -> {
-            var watchAdapter = new WatcherAdapter(emitter);
-
-            var watch = kubernetesClient.configMaps()
+            var informer = kubernetesClient.configMaps()
                     .inNamespace(sourceProperties.getNamespace())
                     .withLabels(sourceProperties.getLabels())
-                    .watch(watchAdapter);
+                    .inform(new ResourceEventHandler<ConfigMap>() {
+                        @Override
+                        public void onAdd(ConfigMap obj) {
+                            if(obj.isMarkedForDeletion()) {
+                                emitter.next(new DeletedEvent(obj));
+                            } else {
+                                emitter.next(new CreatedEvent(obj));
+                            }
+                        }
+
+                        @Override
+                        public void onUpdate(ConfigMap oldObj, ConfigMap newObj) {
+                            if(!oldObj.isMarkedForDeletion() && newObj.isMarkedForDeletion()) {
+                                emitter.next(new DeletedEvent(newObj));
+                            } else {
+                                emitter.next(new ModifiedEvent(oldObj, newObj));
+                            }
+                        }
+
+                        @Override
+                        public void onDelete(ConfigMap obj, boolean deletedFinalStateUnknown) {
+                            emitter.next(new DeletedEvent(obj));
+                        }
+                    });
             log.info("Watching configmaps in namespace '{}' with labels {}", sourceProperties.getNamespace(), sourceProperties.getLabels());
 
-            emitter.onDispose(watch::close);
+            emitter.onDispose(informer::close);
         });
+
     }
 
-    @RequiredArgsConstructor
-    private static class WatcherAdapter implements Watcher<ConfigMap> {
-        private final FluxSink<Event> sink;
-
-        @Override
-        public void eventReceived(Action action, ConfigMap resource) {
-            log.debug("Received event '{}' on configmap '{}'", action, resource);
-            sink.next(new Event(action, resource));
-        }
-
-        @Override
-        public void onClose(WatcherException cause) {
-            sink.error(cause);
-        }
-    }
 }
