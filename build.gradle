@@ -35,7 +35,7 @@ dependencies {
 }
 
 bootBuildImage {
-	def repository = "ghcr.io/xenit-eu/${project.name}"
+	def repository = "ghcr.io/xenit-eu/contentgrid-pathfinder"
 	imageName = "${repository}:${project.version}"
 	tags = "${project.version}".endsWith('SNAPSHOT') ? [ "${repository}:SNAPSHOT" ] : null
 
