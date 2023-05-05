@@ -11,7 +11,7 @@ in ConfigMaps labelled with `app.contentgrid.com/service-type`.
 
 ## Installation
 
-A docker image is available at [`open-source.docker.xenit.eu/contentgrid/pathfinder`](https://cloudsmith.io/~xenit/repos/open-source/packages/?q=name%3A%27%5Econtentgrid%2Fpathfinder%24%27)
+A docker image is available at [`ghcr.io/xenit-eu/contentgrid-pathfinder`](https://github.com/xenit-eu/contentgrid-pathfinder/pkgs/container/contentgrid-pathfinder)
 
 Pathfinder requires a Kubernetes ServiceAccount with permissions in two namespaces:
 
