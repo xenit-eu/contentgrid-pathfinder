@@ -35,9 +35,9 @@ dependencies {
 }
 
 bootBuildImage {
-	def repo = "open-source.docker.xenit.eu/contentgrid/pathfinder"
-	imageName = "${repo}:${project.version}"
-	tags = "${project.version}".endsWith('SNAPSHOT') ? [ "${repo}:SNAPSHOT" ] : null
+	def repository = "ghcr.io/xenit-eu/contentgrid-pathfinder"
+	imageName = "${repository}:${project.version}"
+	tags = "${project.version}".endsWith('SNAPSHOT') ? [ "${repository}:SNAPSHOT" ] : null
 
 	docker {
 		publishRegistry {
