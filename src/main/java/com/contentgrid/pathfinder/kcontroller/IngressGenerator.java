@@ -59,6 +59,7 @@ public class IngressGenerator {
                     .addToAnnotations(targetProperties.getAnnotations())
                 .endMetadata()
                 .withNewSpec()
+                    .withIngressClassName(targetProperties.getIngressClassName())
                     .withRules(domainNames.stream().map(this::createIngressRule).toList())
                     .withTls(ingressTlsBuilder.build())
                 .endSpec()

@@ -3,6 +3,7 @@ package com.contentgrid.pathfinder.boot;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.contentgrid.pathfinder.config.PathfinderProperties;
 import com.contentgrid.pathfinder.kcontroller.IngressGenerator;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -62,6 +63,9 @@ class PathfinderApplicationTests {
 	@Autowired
 	private KubernetesClient kubernetesClient;
 
+	@Autowired
+	private PathfinderProperties config;
+
 	@BeforeAll
 	static void setupNamespace() {
 		var config = Config.fromKubeconfig(k3sContainer.getKubeConfigYaml());
@@ -80,6 +84,8 @@ class PathfinderApplicationTests {
 
 	@Test
 	void configMapLifeCycle() {
+		config.getTarget().setIngressClassName("my-ingress-class");
+
 		var configMap = kubernetesClient.configMaps().inNamespace("default")
 				.resource(new ConfigMapBuilder()
 						.withNewMetadata()
@@ -112,6 +118,8 @@ class PathfinderApplicationTests {
 					assertThat(ingress.getMetadata().getLabels())
 							.containsKeys("app.contentgrid.com/application-id", "app.contentgrid.com/service-type");
 
+					assertThat(ingress.getSpec().getIngressClassName()).isEqualTo("my-ingress-class");
+
 					assertThat(ingress.getSpec().getRules())
 							.map(IngressRule::getHost)
 							.containsExactlyInAnyOrder("abc-def.example.invalid", "fff.example.invalid");
@@ -119,6 +127,9 @@ class PathfinderApplicationTests {
 							.flatMap(IngressTLS::getHosts)
 							.containsExactlyInAnyOrder("abc-def.example.invalid", "fff.example.invalid");
 				});
+
+		// Reset the ingress class like it was unset
+		config.getTarget().setIngressClassName(null);
 
 		// Update the configmap
 		kubernetesClient.configMaps()
@@ -143,6 +154,9 @@ class PathfinderApplicationTests {
 				.inNamespace("contentgrid-system")
 				.withName(ingresses.get(0).getMetadata().getName())
 				.get();
+
+		// Ingress class should be maintained
+		assertThat(ingress.getSpec().getIngressClassName()).isEqualTo("my-ingress-class");
 
 		assertThat(ingress.getSpec().getRules())
 				.map(IngressRule::getHost)

@@ -81,6 +81,9 @@ public class IngressManager {
                                     log.debug("Updating ingress '{}/{}' to new version", ingress.getMetadata().getNamespace(), ingress.getMetadata().getName());
                                     ingress.getMetadata().setLabels(ingressConfig.getMetadata().getLabels());
                                     ingress.getMetadata().setAnnotations(ingressConfig.getMetadata().getAnnotations());
+                                    if(ingressConfig.getSpec().getIngressClassName() == null) {
+                                        ingressConfig.getSpec().setIngressClassName(ingress.getSpec().getIngressClassName());
+                                    }
                                     ingress.setSpec(ingressConfig.getSpec());
                                     return ingress;
                                 });
