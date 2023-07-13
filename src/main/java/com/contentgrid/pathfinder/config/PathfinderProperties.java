@@ -26,6 +26,7 @@ public class PathfinderProperties {
     @Data
     public static class PathfinderTargetProperties {
         private String namespace;
+        private String ingressClassName;
         private Map<String, String> annotations = new HashMap<>();
         private List<ServiceMappingProperties> services = new ArrayList<>();
         private PathfinderTlsProperties tls = new PathfinderTlsProperties();
