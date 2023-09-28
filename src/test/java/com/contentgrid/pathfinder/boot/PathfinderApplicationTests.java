@@ -33,7 +33,10 @@ import org.testcontainers.utility.DockerImageName;
 		"pathfinder.target.services[0].path=/",
 		"pathfinder.target.services[0].pathType=Prefix",
 		"pathfinder.target.services[0].serviceName=test-123",
-		"pathfinder.target.services[0].servicePort=123"
+		"pathfinder.target.services[0].servicePort=123",
+		"pathfinder.target.annotations.static-annotation=static-value",
+		"pathfinder.target.copy-annotations.dynamic-annotation.default-value=dynamic-default",
+		"pathfinder.target.copy-annotations.dynamic-annotation.acceptable-values=dynamic-default,dynamic-option1,dynamic-option2",
 })
 @Testcontainers
 class PathfinderApplicationTests {
@@ -118,6 +121,10 @@ class PathfinderApplicationTests {
 					assertThat(ingress.getMetadata().getLabels())
 							.containsKeys("app.contentgrid.com/application-id", "app.contentgrid.com/service-type");
 
+					assertThat(ingress.getMetadata().getAnnotations())
+							.containsEntry("static-annotation", "static-value")
+							.containsEntry("dynamic-annotation", "dynamic-default");
+
 					assertThat(ingress.getSpec().getIngressClassName()).isEqualTo("my-ingress-class");
 
 					assertThat(ingress.getSpec().getRules())
@@ -127,6 +134,12 @@ class PathfinderApplicationTests {
 							.flatMap(IngressTLS::getHosts)
 							.containsExactlyInAnyOrder("abc-def.example.invalid", "fff.example.invalid");
 				});
+
+		// Dynamic annotations are written back to the configmap
+		assertThat(kubernetesClient.configMaps().resource(configMap).require()).satisfies(cm -> {
+			assertThat(cm.getMetadata().getAnnotations())
+					.containsEntry("dynamic-annotation", "dynamic-default");
+		});
 
 		// Reset the ingress class like it was unset
 		config.getTarget().setIngressClassName(null);
