@@ -19,34 +19,38 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class IngressGenerator {
+
     private final PathfinderTargetProperties targetProperties;
+    private final ConfigMapManager configMapManager;
+
     public static final String DOMAINS_FIELD_NAME = "contentgrid.routing.domains";
     public static final String SOURCE_CONFIGMAP = "pathfinder.contentgrid.com/source-cm";
 
     public Optional<Ingress> createIngress(ConfigMap configMap) {
         var domainNameString = configMap.getData().get(DOMAINS_FIELD_NAME);
-        if(domainNameString == null) {
+        if (domainNameString == null) {
             log.warn("ConfigMap '{}' does not have any hostnames configured", configMap.getMetadata().getName());
             return Optional.empty();
         }
-        if(targetProperties.getServices().isEmpty()) {
+        if (targetProperties.getServices().isEmpty()) {
             log.warn("No services configured for target, can not generate an ingress");
             return Optional.empty();
         }
         var domainNames = List.of(domainNameString.split(","));
 
-
         var ingressBuilder = new IngressBuilder();
         var ingressTlsBuilder = new IngressTLSBuilder()
                 .addAllToHosts(domainNames)
-                .withSecretName("ingress-tls-"+configMap.getMetadata().getName());
+                .withSecretName("ingress-tls-" + configMap.getMetadata().getName());
 
         // Max size of TLS certificate CN field is 64 characters, add a fallback domain name that can be used as CN.
-        if(ingressTlsBuilder.getHosts().stream().noneMatch(domainName -> domainName.length() < 64)) {
-            if(targetProperties.getTls().getFallbackCnHostname() != null) {
+        if (ingressTlsBuilder.getHosts().stream().noneMatch(domainName -> domainName.length() < 64)) {
+            if (targetProperties.getTls().getFallbackCnHostname() != null) {
                 ingressTlsBuilder.addToHosts(targetProperties.getTls().getFallbackCnHostname());
             } else {
-                log.warn("Ingress for ConfigMap '{}': all hostnames are longer than 64 characters. Set 'pathfinder.target.tls.fallback-cn-hostname' to be able to generate a TLS certificate.", configMap.getMetadata().getName());
+                log.warn(
+                        "Ingress for ConfigMap '{}': all hostnames are longer than 64 characters. Set 'pathfinder.target.tls.fallback-cn-hostname' to be able to generate a TLS certificate.",
+                        configMap.getMetadata().getName());
             }
         }
 
@@ -56,7 +60,7 @@ public class IngressGenerator {
                     .withGenerateName(configMap.getMetadata().getName())
                     .addToLabels(configMap.getMetadata().getLabels())
                     .addToLabels(labelsFor(configMap))
-                    .addToAnnotations(targetProperties.getAnnotations())
+                    .addToAnnotations(configMapManager.getIngressAnnotations(configMap))
                 .endMetadata()
                 .withNewSpec()
                     .withIngressClassName(targetProperties.getIngressClassName())

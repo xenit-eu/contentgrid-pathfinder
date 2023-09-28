@@ -3,9 +3,15 @@ package com.contentgrid.pathfinder.config;
 import io.fabric8.kubernetes.client.Config;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -24,11 +30,20 @@ public class PathfinderProperties {
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class PathfinderTargetProperties {
+
         private String namespace;
         private String ingressClassName;
+        @Singular
         private Map<String, String> annotations = new HashMap<>();
+        @Singular
+        private Map<String, AnnotationCopySpec> copyAnnotations = new HashMap<>();
+        @Singular
         private List<ServiceMappingProperties> services = new ArrayList<>();
+        @Builder.Default
         private PathfinderTlsProperties tls = new PathfinderTlsProperties();
     }
 
@@ -43,6 +58,30 @@ public class PathfinderProperties {
 
     @Data
     public static class PathfinderTlsProperties {
+
         private String fallbackCnHostname;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AnnotationCopySpec {
+
+        private String defaultValue;
+        @Builder.Default
+        private Set<String> acceptableValues = new HashSet<>();
+
+        public Set<String> getAcceptableValues() {
+            if (acceptableValues.isEmpty()) {
+                return Set.of();
+            }
+            if (!acceptableValues.contains(defaultValue)) {
+                var copy = new HashSet<>(acceptableValues);
+                copy.add(defaultValue);
+                return Set.copyOf(copy);
+            }
+            return Set.copyOf(acceptableValues);
+        }
     }
 }

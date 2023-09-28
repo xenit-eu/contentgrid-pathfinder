@@ -4,11 +4,11 @@ import static reactor.core.scheduler.Schedulers.DEFAULT_BOUNDED_ELASTIC_QUEUESIZ
 import static reactor.core.scheduler.Schedulers.DEFAULT_BOUNDED_ELASTIC_SIZE;
 
 import com.contentgrid.pathfinder.config.PathfinderProperties;
+import com.contentgrid.pathfinder.kcontroller.ConfigMapManager;
 import com.contentgrid.pathfinder.kcontroller.ConfigMapWatcher;
 import com.contentgrid.pathfinder.kcontroller.IngressGenerator;
 import com.contentgrid.pathfinder.kcontroller.IngressManager;
 import io.fabric8.kubernetes.client.Config;
-import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.micrometer.observation.ObservationRegistry;
@@ -32,29 +32,34 @@ public class PathfinderConfiguration {
 
     @Bean
     KubernetesClient kubernetesClient(PathfinderProperties properties) {
-        var config = Optional.ofNullable(properties.getKubernetes())
-                .orElseGet(() -> {
-                    log.warn("Using autoconfiguration for kubernetes client");
-                    return Config.autoConfigure(null);
-                });
-        return new KubernetesClientBuilder()
-                .withConfig(config)
-                .build();
+        var config = Optional.ofNullable(properties.getKubernetes()).orElseGet(() -> {
+            log.warn("Using autoconfiguration for kubernetes client");
+            return Config.autoConfigure(null);
+        });
+        return new KubernetesClientBuilder().withConfig(config).build();
     }
-    
+
     @Bean
-    IngressGenerator ingressGenerator(PathfinderProperties properties) {
-        return new IngressGenerator(properties.getTarget());
+    ConfigMapManager configMapManager(PathfinderProperties properties) {
+        return new ConfigMapManager(properties.getTarget());
     }
-    
+
+    @Bean
+    IngressGenerator ingressGenerator(PathfinderProperties properties, ConfigMapManager configMapManager) {
+        return new IngressGenerator(properties.getTarget(), configMapManager);
+    }
+
     @Bean
     ConfigMapWatcher configMapWatcher(PathfinderProperties properties, KubernetesClient kubernetesClient) {
         return new ConfigMapWatcher(properties.getSource(), kubernetesClient);
     }
 
     @Bean
-    IngressManager ingressManager(PathfinderProperties properties,IngressGenerator ingressGenerator, KubernetesClient kubernetesClient, ObservationRegistry observationRegistry) {
-        return new IngressManager(properties.getTarget(), ingressGenerator, kubernetesClient, observationRegistry);
+    IngressManager ingressManager(PathfinderProperties properties, IngressGenerator ingressGenerator,
+            ConfigMapManager configMapManager, KubernetesClient kubernetesClient,
+            ObservationRegistry observationRegistry) {
+        return new IngressManager(properties.getTarget(), ingressGenerator, configMapManager, kubernetesClient,
+                observationRegistry);
     }
 
     @Bean

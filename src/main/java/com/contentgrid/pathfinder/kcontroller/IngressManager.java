@@ -19,10 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 public class IngressManager {
     private final PathfinderTargetProperties targetProperties;
     private final IngressGenerator generator;
+    private final ConfigMapManager configMapManager;
     private final KubernetesClient kubernetesClient;
     private final ObservationRegistry observationRegistry;
-
-    private static final String PATHFINDER_FINALIZER = "pathfinder.contentgrid.com/ingress";
 
     public void handleEvent(Event event) {
         try {
@@ -62,15 +61,8 @@ public class IngressManager {
     private void createOrUpdate(ConfigMap configMap) {
         generator.createIngress(configMap)
                 .ifPresentOrElse(ingressConfig -> {
-                    if(!configMap.hasFinalizer(PATHFINDER_FINALIZER)) {
-                        log.debug("Adding finalizer '{}' to configmap '{}/{}'", PATHFINDER_FINALIZER, configMap.getMetadata().getNamespace(), configMap.getMetadata().getName());
-                        kubernetesClient.configMaps()
-                                .resource(configMap)
-                                .edit(configMap1 -> {
-                                    configMap1.addFinalizer(PATHFINDER_FINALIZER);
-                                    return configMap1;
-                                });
-                    }
+                    configMapManager.linkToIngress(configMap, ingressConfig)
+                            .ifPresent(kubernetesClient.configMaps().resource(configMap)::edit);
                     AtomicBoolean hasEdited = new AtomicBoolean(false);
                     kubernetesClient.network().v1().ingresses()
                             .inNamespace(ingressConfig.getMetadata().getNamespace())
@@ -78,7 +70,8 @@ public class IngressManager {
                             .resources()
                             .forEachOrdered(ingressResource -> {
                                 ingressResource.edit(ingress -> {
-                                    log.debug("Updating ingress '{}/{}' to new version", ingress.getMetadata().getNamespace(), ingress.getMetadata().getName());
+                                    log.debug("Updating ingress '{}/{}' to new version",
+                                            ingress.getMetadata().getNamespace(), ingress.getMetadata().getName());
                                     ingress.getMetadata().setLabels(ingressConfig.getMetadata().getLabels());
                                     ingress.getMetadata().setAnnotations(ingressConfig.getMetadata().getAnnotations());
                                     if(ingressConfig.getSpec().getIngressClassName() == null) {
@@ -110,16 +103,8 @@ public class IngressManager {
         statuses.forEach(statusDetails -> {
             log.info("Removed ingress '{}/{}'", targetProperties.getNamespace(), statusDetails.getName());
         });
-        if(configMap.hasFinalizer(PATHFINDER_FINALIZER)) {
-            log.debug("Removing finalizer '{}' from configmap '{}/{}'", PATHFINDER_FINALIZER,
-                    configMap.getMetadata().getNamespace(), configMap.getMetadata().getName());
-            kubernetesClient.configMaps()
-                    .resource(configMap)
-                    .edit(cm -> {
-                        cm.removeFinalizer(PATHFINDER_FINALIZER);
-                        return cm;
-                    });
-        }
+        configMapManager.unlinkFromIngress(configMap)
+                .ifPresent(kubernetesClient.configMaps().resource(configMap)::edit);
     }
 
 }
