@@ -6,6 +6,10 @@ pluginManagement {
     }
 }
 
+plugins {
+    id 'eu.xenit.enterprise-conventions.oss' version '0.5.1'
+}
+
 
 dependencyResolutionManagement {
     repositories {
