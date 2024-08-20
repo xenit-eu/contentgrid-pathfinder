@@ -41,8 +41,7 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class PathfinderApplicationTests {
 	@Container
-	private final static K3sContainer k3sContainer = new K3sContainer(DockerImageName.parse("rancher/k3s:latest"))
-			.withCommand("server");
+	private final static K3sContainer k3sContainer = new K3sContainer(DockerImageName.parse("rancher/k3s:latest"));
 
 	@DynamicPropertySource
 	static void registerKubernetesProperties(DynamicPropertyRegistry registry) {
