@@ -32,10 +32,11 @@ public class PathfinderConfiguration {
 
     @Bean
     KubernetesClient kubernetesClient(PathfinderProperties properties) {
-        var config = Optional.ofNullable(properties.getKubernetes()).orElseGet(() -> {
+        var config = properties.getKubernetes();
+        if (!properties.isKubernetesConfigured()) {
             log.warn("Using autoconfiguration for kubernetes client");
-            return Config.autoConfigure(null);
-        });
+            config = Config.autoConfigure(null);
+        }
         return new KubernetesClientBuilder().withConfig(config).build();
     }
 

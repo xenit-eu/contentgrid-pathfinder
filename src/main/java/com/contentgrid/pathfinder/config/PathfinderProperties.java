@@ -7,10 +7,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -19,9 +21,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @Slf4j
 public class PathfinderProperties {
-    private Config kubernetes;
+
+    private Config kubernetes = Config.empty();
+
+    @Setter(value = AccessLevel.NONE)
+    private boolean kubernetesConfigured = false;
+
     private PathfinderSourceProperties source = new PathfinderSourceProperties();
     private PathfinderTargetProperties target = new PathfinderTargetProperties();
+
+    public void setKubernetes(Config kubernetes) {
+        this.kubernetes = kubernetes;
+        kubernetesConfigured = true;
+    }
 
     @Data
     public static class PathfinderSourceProperties {
