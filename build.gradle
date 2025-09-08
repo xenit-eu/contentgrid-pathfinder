@@ -17,7 +17,7 @@ springBoot {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'io.fabric8:kubernetes-client:7.3.1'
+	implementation 'io.fabric8:kubernetes-client:7.4.0'
 	implementation 'io.projectreactor:reactor-core'
 
 	implementation 'io.projectreactor:reactor-core-micrometer'
