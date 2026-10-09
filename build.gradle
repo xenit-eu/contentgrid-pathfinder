@@ -3,6 +3,8 @@ plugins {
 	id 'org.springframework.boot'
 	id 'io.spring.dependency-management'
 	id 'io.freefair.lombok'
+	// Opts in to the conventions plugin's Spotless defaults (removeUnusedImports).
+	id 'com.diffplug.spotless'
 }
 
 configurations {

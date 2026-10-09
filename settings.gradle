@@ -3,11 +3,12 @@ pluginManagement {
         id 'org.springframework.boot' version "${springBootVersion}"
         id 'io.spring.dependency-management' version "1.1.7"
         id 'io.freefair.lombok' version "${lombokPluginVersion}"
+        id 'com.diffplug.spotless' version '8.10.3'
     }
 }
 
 plugins {
-    id 'eu.xenit.enterprise-conventions.oss' version '0.9.0'
+    id 'eu.xenit.enterprise-conventions.oss' version '0.10.0'
 }
 
 
